@@ -1,91 +1,212 @@
-import Image from 'next/image'
-import { Inter } from '@next/font/google'
-import styles from './page.module.css'
+"use client";
+import styles from "./page.module.css";
+import React, { Component } from "react";
+import Image from "next/image";
 
-const inter = Inter({ subsets: ['latin'] })
+class Images {
+  constructor(pic, index) {
+    this.pic = pic;
+    this.isSelected = false;
+    this.hide = true;
+    this.index = index;
+    this.correct = false;
+  }
+}
 
-export default function Home() {
-  return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+const pictures = [
+  "/agent47.png",
+  "/geralt.jpg",
+  "/aloy.png",
+  "/tracer.jpg",
+  "/joel.jpg",
+  "/kassandra.jpg",
+  "/kratos.jpg",
+];
+
+export default class Home extends Component {
+  constructor() {
+    super();
+    this.state = {
+      pairs: this.GetPairs(),
+      count: 0,
+      latestSelectedIndex: null,
+    };
+  }
+
+  GetPairs = () => {
+    var array = [],
+      index = 0;
+    pictures.forEach((pic) => {
+      array.push(new Images(pic, index));
+      array.push(new Images(pic, index));
+      index += 1;
+    });
+    return this.shuffle(this.shuffle(array));
+  };
+
+  shuffle = (array) => {
+    let currentIndex = array.length,
+      randomIndex;
+
+    // While there remain elements to shuffle.
+    while (currentIndex != 0) {
+      // Pick a remaining element.
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+
+      // And swap it with the current element.
+      [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex],
+        array[currentIndex],
+      ];
+    }
+
+    return array;
+  };
+
+  validation = () => {
+    var { pairs, count } = this.state;
+    var newPair = pairs;
+
+    var newArray = pairs.filter((x) => x.isSelected && !x.correct);
+    if (count > 1 && count % 2 !== 0) newPair = this.updateIncorrectPairsHide();
+
+    if (newArray.length === 2 && newArray[0].index !== newArray[1].index) {
+      var firstIndex = pairs.findIndex(
+        (x) => x.isSelected && !x.correct && x.index === newArray[0].index
+      );
+
+      var secondIndex = pairs.findIndex(
+        (x) => x.isSelected && !x.correct && x.index === newArray[1].index
+      );
+      newPair = this.updateIncorrectPairsSelected(firstIndex, secondIndex);
+    }
+
+    if (newArray.length >= 2 && newArray[0].index === newArray[1].index) {
+      newPair = this.updateCorrectPairs(newArray[0].index, true);
+    }
+
+    if (JSON.stringify(newPair) !== JSON.stringify(pairs))
+      this.setState({ pairs: newPair });
+  };
+
+  updateCorrectPairs = (index) => {
+    let newPair = this.state.pairs;
+
+    newPair.forEach((pair) => {
+      if (pair.index === index) pair.correct = true;
+    });
+    return newPair;
+  };
+
+  updateIncorrectPairsSelected = (firstIndex, secondIndex) => {
+    let newPair = this.state.pairs;
+    newPair[firstIndex].isSelected = false;
+
+    newPair[secondIndex].isSelected = false;
+
+    return newPair;
+  };
+
+  updateIncorrectPairsHide = () => {
+    let newPair = this.state.pairs;
+    newPair.forEach((item, index) => {
+      if (
+        !item.isSelected &&
+        !item.hide &&
+        index !== this.state.latestSelectedIndex
+      ) {
+        newPair[index].hide = true;
+      }
+    });
+
+    return newPair;
+  };
+
+  onChangeSelected = (index) => {
+    this.setState({
+      pairs: [
+        ...this.state.pairs.slice(0, index),
+        {
+          ...this.state.pairs[index],
+          isSelected: true,
+          hide: false,
+        },
+        ...this.state.pairs.slice(index + 1),
+      ],
+      count: this.state.count + 1,
+      latestSelectedIndex: index,
+    });
+  };
+
+  restart = () => {
+    this.setState({
+      pairs: this.GetPairs(),
+      count: 0,
+      latestSelectedIndex: null,
+    });
+  };
+
+  render() {
+    var { pairs, count } = this.state;
+
+    this.validation();
+    return (
+      <main className={styles.main}>
+        <div className={styles.descriptionBox}>
+          <div className={styles.description}>
+            <p>The Pair Game</p>
+          </div>
+          <div className={styles.description}>
+            {count > 0 ? <p>Steps : {count}</p> : <p>Select any to start</p>}
+            {count > 0 && (
+              <button className={styles.button} onClick={() => this.restart()}>
+                Restart
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-        <div className={styles.thirteen}>
-          <Image src="/thirteen.svg" alt="13" width={40} height={31} priority />
+        <div className={styles.imagesContainer}>
+          {pairs.map((item, index) => {
+            return item.hide ? (
+              <div
+                className={styles.imageBox}
+                onClick={() =>
+                  item.correct ||
+                  item.isSelected ||
+                  this.onChangeSelected(index)
+                }
+              >
+                <Image
+                  id={index}
+                  src="/card2.png"
+                  alt="XP"
+                  width="100"
+                  height="150"
+                />
+              </div>
+            ) : (
+              <div
+                className={styles.imageBox}
+                onClick={() =>
+                  item.correct ||
+                  item.isSelected ||
+                  this.onChangeSelected(index)
+                }
+              >
+                <Image
+                  id={index}
+                  src={item.pic}
+                  alt={index}
+                  width="100"
+                  height="150"
+                />
+              </div>
+            );
+          })}
         </div>
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://beta.nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+      </main>
+    );
+  }
 }
